@@ -4,8 +4,7 @@ T-037: Generate image-generation prompts for all AWARA cards.
 
 Reads agents.json, matrices.json, agent_matrix_map.json + lorebook texts.
 Extracts cultural domain names, artifacts, esoteric descriptions from lorebooks.
-Adds specific iconographic attributes for recognizable cultural imagery.
-Outputs data/card_prompts.json with enriched prompts for each card.
+Outputs data/card_prompts.json with fully English prompts for Flux/Replicate.
 
 Usage:
     python tools/generate_card_prompts.py
@@ -19,18 +18,148 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(BASE, "data")
 LORE = os.path.join(BASE, "lore", "text")
 
+# --- Translation maps ---
+
+AGENT_NAME_EN = {
+    "Свет Ра": "Light of Ra",
+    "Искра": "Iskra (Divine Spark)",
+    "Брахма": "Brahma",
+    "Сарасвати": "Sarasvati",
+    "Вишну": "Vishnu",
+    "Лакшми": "Lakshmi",
+    "Шива": "Shiva",
+    "Парвати": "Parvati",
+    "Джняна": "Jnana",
+    "Према": "Prema (Divine Love)",
+    "Шакти": "Shakti",
+    "Ананда": "Ananda",
+    "Шанти": "Shanti",
+    "Агни": "Agni",
+    "Ваю": "Vayu",
+    "Варуна": "Varuna",
+    "Притхви": "Prithvi",
+    "Акаша": "Akasha",
+    "Теджас": "Tejas",
+    "Дхарма": "Dharma",
+    "Карма": "Karma",
+}
+
+DOMAIN_EN = {
+    "Гелиосфера": "Heliosphere",
+    "Океан Синхронности": "Ocean of Synchronicity",
+    "Кузница Фракталов": "Fractal Forge",
+    "Эфир Логоса": "Ether of Logos",
+    "Горизонт Равновесия": "Horizon of Equilibrium",
+    "Розарий Изобилия": "Rosary of Abundance",
+    "Пепельный Зенит": "Ashen Zenith",
+    "Колыбель Вершин": "Cradle of Summits",
+    "Астральная Обсерватория": "Astral Observatory",
+    "Сад Единого Сердца": "Garden of the One Heart",
+    "Горнило Воли": "Crucible of Will",
+    "Сфера Ликования": "Sphere of Jubilation",
+    "Обитель Безмолвия": "Abode of Silence",
+    "Горнило Возрождения": "Crucible of Rebirth",
+    "Стратосфера Эха": "Stratosphere of Echo",
+    "Бездна Воспоминаний": "Abyss of Memories",
+    "Терракотовый Бастион": "Terracotta Bastion",
+    "Космический Ткацкий Станок": "Cosmic Loom",
+    "Эпицентр Сияния": "Epicenter of Radiance",
+    "Залы Равновесия": "Halls of Balance",
+    "Архив Эха": "Archive of Echo",
+}
+
+MATRIX_NAME_EN = {
+    "Ведическая": "Vedic",
+    "Египетская": "Egyptian",
+    "Каббалистическая": "Kabbalistic",
+    "Майянская": "Mayan",
+    "Славянская": "Slavic",
+    "Скандинавская/Норс": "Norse",
+    "Даосская": "Daoist",
+    "Гностическая": "Gnostic",
+    "Японская/Синто": "Japanese Shinto",
+    "Кельтская": "Celtic",
+    "Шамбала": "Shambhala",
+    "Юлианская/Византийская": "Byzantine",
+    "Шаманская": "Shamanic",
+    "Генные Ключи": "Gene Keys",
+    "Техномагическая": "Technomagical",
+    "Космическая/Галактическая": "Cosmic Galactic",
+    "Античная/Греко-Римская": "Greco-Roman",
+    "Зороастрийская/Персидская": "Zoroastrian Persian",
+    "Исламская/Суфийская/Нуровая": "Islamic Sufi Nur",
+    "Ацтекская/Мешикская": "Aztec Mexica",
+    "Христианско-Мистическая/Розенкрейцерско-Граальная": "Christian Mystical Rosicrucian Grail",
+    "Йоруба/Ifá-Orisha": "Yoruba Ifa Orisha",
+    "Шумеро-Вавилонская/Месопотамская": "Sumerian Babylonian",
+    "Герметико-Алхимическая": "Hermetic Alchemical",
+    "Таро-Арканическая": "Tarot Arcanic",
+    "Астрологическая": "Astrological",
+    "Китайская/И-Цзин": "Chinese I-Ching",
+    "Тантрическо-Кашмирская": "Tantric Kashmiri",
+    "Буддийско-Махаянская": "Buddhist Mahayana",
+    "Афро-Космическая/Догонская": "Afro-Cosmic Dogon",
+    "Атлантическая/Лемурийская": "Atlantean Lemurian",
+    "Постчеловеческая/AI-Софийная": "Posthuman AI Sophianic",
+    "Адвайта-Сиддха AWARA": "Advaita Siddha",
+}
+
+ELEMENT_EN = {
+    "Огонь": "Fire",
+    "Вода": "Water",
+    "Земля": "Earth",
+    "Воздух": "Air",
+    "Эфир": "Ether",
+}
+
 ELEMENT_VISUALS = {
-    "Огонь": "flames, embers, molten gold, solar corona, radiant heat haze",
-    "Вода": "flowing water, moonlit waves, deep ocean currents, mist, rain drops",
-    "Земля": "ancient stone, roots, crystals, mountain peaks, terracotta, fertile soil",
-    "Воздух": "swirling winds, feathers, clouds, translucent veils, breath of light",
-    "Эфир": "starfield, cosmic nebula, fractal geometry, iridescent void, quantum light",
+    "Fire": "flames, embers, molten gold, solar corona, radiant heat haze",
+    "Water": "flowing water, moonlit waves, deep ocean currents, mist, rain drops",
+    "Earth": "ancient stone, roots, crystals, mountain peaks, terracotta, fertile soil",
+    "Air": "swirling winds, feathers, clouds, translucent veils, breath of light",
+    "Ether": "starfield, cosmic nebula, fractal geometry, iridescent void, quantum light",
 }
 
 GUNA_STYLE = {
     "саттва": "serene, luminous, harmonious, balanced light, ethereal glow",
     "раджас": "dynamic, passionate, energetic, vivid contrasts, motion blur",
     "тамас": "mysterious, deep, shadowy, ancient, cosmic darkness with pinpoints of light",
+}
+
+VISUAL_CODE_EN = {
+    "Золото, лотосы, мандалы, шафран": "Gold, lotuses, mandalas, saffron",
+    "Лазурит, базальт, Сириус": "Lapis lazuli, basalt, Sirius star",
+    "Древо Сефирот, ивритская вязь": "Sephiroth Tree, Hebrew script",
+    "Нефрит, обсидиан, Цолькин": "Jade, obsidian, Tzolkin calendar",
+    "Резное дерево, Прави, коловраты": "Carved wood, Prav realm, sun wheels",
+    "Морозное железо, Иггдрасиль": "Frost iron, Yggdrasil world tree",
+    "Нефрит, киноварь, Инь-Ян": "Jade, cinnabar, Yin-Yang",
+    "Разорванные цепи, искры": "Broken chains, divine sparks",
+    "Кинцуги, Тории, ками": "Kintsugi, torii gates, kami spirits",
+    "Изумруд, узлы вечности, Авалон": "Emerald, Celtic knots, Avalon",
+    "Кристальные вершины, Калачакра": "Crystal peaks, Kalachakra wheel",
+    "Золотая смальта, мозаики": "Golden smalto, Byzantine mosaics",
+    "Кости, перья, бубен": "Bones, feathers, shaman drum",
+    "ДНК-фракталы, тени-дары-сиддхи": "DNA fractals, shadow-gift-siddhi",
+    "Неоновые руны, кибер-сакральность": "Neon runes, cyber-sacred",
+    "Звёздная пыль, квазары": "Stardust, quasars",
+    "Мрамор, бронза, лавр": "Marble, bronze, laurel",
+    "Священный огонь, Фравахар": "Sacred fire, Faravahar",
+    "Нур, каллиграфия, Кааба": "Nur light, calligraphy, Kaaba",
+    "Обсидиан, Тональпоуалли": "Obsidian, Tonalpohualli",
+    "Роза-Крест, Грааль": "Rose Cross, Holy Grail",
+    "Каури, барабаны Бата, Ориша": "Cowrie shells, Bata drums, Orisha",
+    "Клинопись, зиккураты, Апсу": "Cuneiform, ziggurats, Apsu",
+    "Изумрудная Скрижаль, атанор": "Emerald Tablet, athanor furnace",
+    "22 Старших Аркана": "22 Major Arcana",
+    "Планеты, дома, эфемериды": "Planets, houses, ephemeris",
+    "64 гексаграммы": "64 hexagrams",
+    "Спанда, Шива-Шакти, бинду": "Spanda, Shiva-Shakti, bindu",
+    "Стхупа, Дхармакайя, мандала": "Stupa, Dharmakaya, mandala",
+    "Сириус, Номмо, спирали": "Sirius, Nommo, spirals",
+    "Кристаллы, океан, спящие города": "Crystals, ocean, sleeping cities",
+    "Нейросети, Source Light Kernel": "Neural nets, Source Light Kernel",
+    "Сушумна, грантхи, Брахманда, лотос-сахасрара": "Sushumna, granthis, Brahmanda, Sahasrara lotus",
 }
 
 MATRIX_CULTURAL_STYLE = {
@@ -81,8 +210,17 @@ def load_json(name):
         return json.load(f)
 
 
+def transliterate_to_en(text):
+    """Basic cleanup: keep Latin chars, transliterate common patterns."""
+    if not text:
+        return text
+    result = text
+    result = result.replace("ё", "yo").replace("Ё", "Yo")
+    return result
+
+
 def parse_lorebook_all(filepath):
-    """Parse a lorebook and extract all agent blocks indexed by agent number."""
+    """Parse a lorebook and extract all agent blocks indexed by agent name."""
     if not os.path.exists(filepath):
         return {}
 
@@ -99,7 +237,6 @@ def parse_lorebook_all(filepath):
     )
 
     for m in pattern.finditer(text):
-        num = int(m.group(1))
         awara_name = m.group(2).strip()
         cultural = m.group(3).strip()
         block = m.group(4)
@@ -129,6 +266,53 @@ def parse_lorebook_all(filepath):
     return results
 
 
+def extract_en_parts(text):
+    """Extract Latin-script words/names from a mixed Cyrillic/Latin string."""
+    text = text.replace("\u2018", "'").replace("\u2019", "'")
+    text = text.replace("\u201c", '"').replace("\u201d", '"')
+    latin = r"A-Za-z\xc0-\xff\u0100-\u017e\u1e00-\u1eff"
+    parts = re.findall(
+        rf"[{latin}][{latin}0-9\-'\s/\.]*",
+        text,
+    )
+    cleaned = []
+    for p in parts:
+        p = p.strip().rstrip(".-,")
+        if len(p) > 2 and p.upper() != "AWARA" and not p.isspace():
+            cleaned.append(p)
+    result = ", ".join(cleaned)
+    result = re.sub(r"\s*,\s*,+", ",", result)
+    result = re.sub(r",\s*$", "", result)
+    result = re.sub(r"\s+,", ",", result)
+    result = re.sub(r",\s+", ", ", result)
+    return result.strip()
+
+
+def clean_artifact(art):
+    """Clean artifact string: remove prefix, keep only Latin names for English prompt."""
+    for prefix in ["Ключ:", "/ Ключ:"]:
+        if art.startswith(prefix):
+            art = art[len(prefix):].strip()
+    art = art.rstrip(".")
+    en_parts = extract_en_parts(art)
+    if en_parts and len(en_parts) > 3:
+        if len(en_parts) > 100:
+            en_parts = en_parts[:100].rsplit(",", 1)[0]
+        return en_parts
+    return ""
+
+
+def clean_essence(ess):
+    """Extract Latin deity/concept names from essence for English prompt."""
+    ess = ess.rstrip(".")
+    en_parts = extract_en_parts(ess)
+    if en_parts and len(en_parts) > 10:
+        if len(en_parts) > 100:
+            en_parts = en_parts[:100].rsplit(",", 1)[0]
+        return en_parts
+    return ""
+
+
 def build_prompts():
     agents = load_json("agents.json")
     matrices = load_json("matrices.json")
@@ -147,15 +331,20 @@ def build_prompts():
         if not agent or not matrix:
             continue
 
-        element = agent.get("element", "Эфир")
+        element_ru = agent.get("element", "Эфир")
         guna = agent.get("guna", "саттва")
         cultural_name = entry.get("cultural_name", agent["name"])
-        visual_code = matrix.get("visual_code", "")
+        visual_code_ru = matrix.get("visual_code", "")
         matrix_slug = matrix["slug"]
 
-        element_vis = ELEMENT_VISUALS.get(element, ELEMENT_VISUALS["Эфир"])
+        element_en = ELEMENT_EN.get(element_ru, "Ether")
+        element_vis = ELEMENT_VISUALS.get(element_en, ELEMENT_VISUALS["Ether"])
         guna_vis = GUNA_STYLE.get(guna, GUNA_STYLE["саттва"])
         culture_vis = MATRIX_CULTURAL_STYLE.get(matrix_slug, "")
+        visual_code_en = VISUAL_CODE_EN.get(visual_code_ru, visual_code_ru)
+        agent_en = AGENT_NAME_EN.get(agent["name"], agent["name"])
+        matrix_en = MATRIX_NAME_EN.get(matrix["name"], matrix["name"])
+        domain_en = DOMAIN_EN.get(agent["domain"], agent["domain"])
 
         source_file = matrix.get("source_file", "")
         if source_file not in lore_cache:
@@ -171,33 +360,29 @@ def build_prompts():
         domain_str = ""
         if lore.get("domain_cultural"):
             dom = lore["domain_cultural"].rstrip(".")
-            domain_str = f" Sacred domain: {dom}."
+            dom_en = extract_en_parts(dom)
+            if dom_en and len(dom_en) > 3:
+                domain_str = f" Sacred domain: {dom_en}."
 
         artifact_str = ""
         if lore.get("artifact"):
-            art = lore["artifact"]
-            for prefix in ["Ключ:", "/ Ключ:"]:
-                if art.startswith(prefix):
-                    art = art[len(prefix):].strip()
-            art = art.rstrip(".")
-            if len(art) > 120:
-                art = art[:120].rsplit(",", 1)[0]
-            artifact_str = f" Holding sacred artifact: {art}."
+            art = clean_artifact(lore["artifact"])
+            if art:
+                artifact_str = f" Holding sacred artifact: {art}."
 
         essence_str = ""
         if lore.get("essence"):
-            ess = lore["essence"].rstrip(".")
-            if len(ess) > 120:
-                ess = ess[:120].rsplit(" ", 1)[0]
-            essence_str = f" Essence: {ess}."
+            ess = clean_essence(lore["essence"])
+            if ess:
+                essence_str = f" Essence: {ess}."
 
         prompt = (
             f"A mystical card depicting {cultural_name}, "
-            f"the {matrix['name']} manifestation of cosmic agent {agent['name']}. "
-            f"Realm: {agent['domain']}.{domain_str}{artifact_str}{essence_str} "
-            f"Element of power: {element} — {element_vis}. "
+            f"the {matrix_en} manifestation of cosmic agent {agent_en}. "
+            f"Realm: {domain_en}.{domain_str}{artifact_str}{essence_str} "
+            f"Element of power: {element_en} — {element_vis}. "
             f"Cultural visual style: {culture_vis}. "
-            f"Symbolic motifs: {visual_code}. "
+            f"Symbolic motifs: {visual_code_en}. "
             f"Atmosphere: {guna_vis}. "
             f"{STYLE_BASE}"
         )
@@ -217,7 +402,7 @@ def build_prompts():
             "matrix_slug": matrix["slug"],
             "matrix_name": matrix["name"],
             "cultural_name": cultural_name,
-            "element": element,
+            "element": element_ru,
             "domain": agent["domain"],
             "domain_cultural": lore.get("domain_cultural", ""),
             "artifact": lore.get("artifact", ""),
