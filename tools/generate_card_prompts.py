@@ -20,6 +20,30 @@ LORE = os.path.join(BASE, "lore", "text")
 
 # --- Translation maps ---
 
+AGENT_ARCHETYPE = {
+    "Свет Ра": "a radiant solar deity with sun disk crown and golden halo, divine ruler of light, holding sun scepter, rays of golden light emanating from body",
+    "Искра": "a luminous tiny divine spark of consciousness floating in cosmic darkness, seed of soul-light, delicate flame of awareness, eternal inner light",
+    "Брахма": "a majestic four-headed cosmic creator deity with long beard, four arms holding sacred book scepter water vessel and prayer beads, seated on grand lotus throne",
+    "Сарасвати": "an elegant wisdom goddess playing stringed instrument, wearing flowing white robes, holding sacred book and lotus, swan companion nearby, river of knowledge",
+    "Вишну": "a serene blue-skinned cosmic preserver deity with golden crown, four arms holding conch shell discus mace and lotus flower, reclining on cosmic serpent in ocean",
+    "Лакшми": "a beautiful abundance goddess standing on blooming lotus, pouring gold coins from one hand, holding lotus flowers, wearing red-gold robes, elephants pouring water",
+    "Шива": "a powerful ascetic destroyer-transformer deity with matted hair third eye and crescent moon, holding trident, cobra around neck, seated in deep meditation, sacred ash on body",
+    "Парвати": "a gentle nurturing mountain goddess with golden ornaments, holding lotus and mirror, wearing green-gold garments with flowers, divine mother energy, mountain backdrop",
+    "Джняна": "a wise all-knowing sage radiating pure white light of knowledge, third eye of wisdom open, surrounded by floating sacred texts, infinite cosmic library",
+    "Према": "an embodiment of divine unconditional love as two luminous beings merging in heart-shaped golden radiance, rose petals floating, pink-gold cosmic love energy",
+    "Шакти": "a fierce ten-armed divine feminine warrior riding a lion-tiger mount, wielding weapons in each hand including trident sword and bow, blazing energy aura",
+    "Ананда": "an ecstatic figure of divine bliss dancing in rainbow cosmic light, levitating in joy, radiating waves of jubilation, music of celestial spheres",
+    "Шанти": "a serene meditating figure of absolute divine peace, perfectly still, reflected in cosmic mirror-lake, single Om vibration, moonlit lotus, profound silence",
+    "Агни": "a blazing fire deity with two faces and seven flame tongues, riding a ram, multiple arms holding torch and sacrificial ladle, sacred fire altar burning",
+    "Ваю": "a dynamic wind deity riding an antelope mount, holding billowing white flag, flowing robes caught in cosmic winds, thousand-eyed wind form, breath of life swirling",
+    "Варуна": "a deep-ocean cosmic deity riding sea-monster mount, holding binding noose, blue skin, crown of a thousand watching eyes, surrounded by dark cosmic waters under stars",
+    "Притхви": "a patient earth-mother deity in brown-green garments, sitting on fertile soil, holding germinating seeds and grain, mountains as spine, roots growing from body",
+    "Акаша": "infinite cosmic ether-space as vast starry void containing all possibility, galactic library of records, quantum vacuum luminosity, formless space of creation",
+    "Теджас": "intense golden-white spiritual radiance and brilliance, crystalline flame body without smoke, aura of inner mastery, sacred protective light, divine inner fire",
+    "Дхарма": "golden eight-spoked wheel of cosmic law (Dharmachakra), perfectly balanced scales of justice, eternal cosmic order written in starlight, lion-pillar throne",
+    "Карма": "spinning cosmic wheel of cause and effect with Sanskrit symbols, threads connecting past to future, scales weighing actions, cycle of incarnation, chains and liberation",
+}
+
 AGENT_NAME_EN = {
     "Свет Ра": "Light of Ra",
     "Искра": "Iskra (Divine Spark)",
@@ -317,6 +341,7 @@ def build_prompts():
     agents = load_json("agents.json")
     matrices = load_json("matrices.json")
     agent_map = load_json("agent_matrix_map.json")
+    iconography = load_json("iconography.json")
 
     agents_by_id = {a["id"]: a for a in agents}
     matrices_by_id = {m["id"]: m for m in matrices}
@@ -346,6 +371,8 @@ def build_prompts():
         matrix_en = MATRIX_NAME_EN.get(matrix["name"], matrix["name"])
         domain_en = DOMAIN_EN.get(agent["domain"], agent["domain"])
 
+        icon_desc = iconography.get(cultural_name, "")
+
         source_file = matrix.get("source_file", "")
         if source_file not in lore_cache:
             if source_file:
@@ -365,27 +392,43 @@ def build_prompts():
                 domain_str = f" Sacred domain: {dom_en}."
 
         artifact_str = ""
-        if lore.get("artifact"):
+        if not icon_desc and lore.get("artifact"):
             art = clean_artifact(lore["artifact"])
             if art:
                 artifact_str = f" Holding sacred artifact: {art}."
 
-        essence_str = ""
-        if lore.get("essence"):
-            ess = clean_essence(lore["essence"])
-            if ess:
-                essence_str = f" Essence: {ess}."
+        archetype = AGENT_ARCHETYPE.get(agent["name"], "")
 
-        prompt = (
-            f"A mystical card depicting {cultural_name}, "
-            f"the {matrix_en} manifestation of cosmic agent {agent_en}. "
-            f"Realm: {domain_en}.{domain_str}{artifact_str}{essence_str} "
-            f"Element of power: {element_en} — {element_vis}. "
-            f"Cultural visual style: {culture_vis}. "
-            f"Symbolic motifs: {visual_code_en}. "
-            f"Atmosphere: {guna_vis}. "
-            f"{STYLE_BASE}"
-        )
+        if icon_desc:
+            prompt = (
+                f"A mystical tarot-style card depicting {icon_desc}. "
+                f"{matrix_en} tradition. "
+                f"Element: {element_en} — {element_vis}. "
+                f"Setting: {culture_vis}. "
+                f"Mood: {guna_vis}. "
+                f"{STYLE_BASE}"
+            )
+        elif archetype:
+            prompt = (
+                f"A mystical tarot-style card depicting {archetype}, "
+                f"reimagined as {cultural_name} in the {matrix_en} tradition. "
+                f"{domain_str}{artifact_str} "
+                f"Element: {element_en} — {element_vis}. "
+                f"Setting: {culture_vis}. "
+                f"Mood: {guna_vis}. "
+                f"{STYLE_BASE}"
+            )
+        else:
+            prompt = (
+                f"A mystical card depicting {cultural_name}, "
+                f"the {matrix_en} manifestation of cosmic agent {agent_en}. "
+                f"Realm: {domain_en}.{domain_str}{artifact_str} "
+                f"Element of power: {element_en} — {element_vis}. "
+                f"Cultural visual style: {culture_vis}. "
+                f"Symbolic motifs: {visual_code_en}. "
+                f"Atmosphere: {guna_vis}. "
+                f"{STYLE_BASE}"
+            )
 
         negative = (
             "text, watermark, signature, blurry, low quality, "
