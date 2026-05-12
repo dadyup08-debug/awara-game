@@ -4,6 +4,7 @@ T-037: Generate image-generation prompts for all AWARA cards.
 
 Reads agents.json, matrices.json, agent_matrix_map.json + lorebook texts.
 Extracts cultural domain names, artifacts, esoteric descriptions from lorebooks.
+Adds specific iconographic attributes for recognizable cultural imagery.
 Outputs data/card_prompts.json with enriched prompts for each card.
 
 Usage:
@@ -80,51 +81,52 @@ def load_json(name):
         return json.load(f)
 
 
-def parse_lorebook(filepath, agent_name):
-    """Extract domain name, artifact, and esoteric essence for a given agent."""
+def parse_lorebook_all(filepath):
+    """Parse a lorebook and extract all agent blocks indexed by agent number."""
     if not os.path.exists(filepath):
         return {}
 
     with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
 
-    result = {}
+    results = {}
+    pattern = re.compile(
+        r'(\d{1,2})\.\s+'
+        r'(\S[^\n]*?)\s*->\s*'
+        r'([^\n]+)\n'
+        r'(.*?)(?=\n\d{1,2}\.\s+\S[^\n]*?\s*->|\Z)',
+        re.DOTALL,
+    )
 
-    agent_patterns = [
-        agent_name,
-        agent_name.replace("Свет Ра", "Свет Ра"),
-    ]
+    for m in pattern.finditer(text):
+        num = int(m.group(1))
+        awara_name = m.group(2).strip()
+        cultural = m.group(3).strip()
+        block = m.group(4)
 
-    for pattern in agent_patterns:
-        idx = text.find(pattern)
-        if idx == -1:
-            continue
+        entry = {"cultural_full": cultural}
 
-        block = text[max(0, idx - 200):idx + 2000]
-
-        domain_match = re.search(
-            r"(?:Название Домена|Domain|Домен)[:\s]*([^\n]+)", block
+        domain_m = re.search(
+            r"(?:Название Домена|Domain)[:\s]*([^\n]+)", block
         )
-        if domain_match:
-            result["domain_cultural"] = domain_match.group(1).strip()
+        if domain_m:
+            entry["domain_cultural"] = domain_m.group(1).strip()
 
-        artifact_match = re.search(
-            r"(?:Артефакт|Artifact|Ключ)[:\s]*([^\n]+)", block
+        artifact_m = re.search(
+            r"Артефакт[^:]*?:\s*([^\n]+)", block
         )
-        if artifact_match:
-            result["artifact"] = artifact_match.group(1).strip()
+        if artifact_m:
+            entry["artifact"] = artifact_m.group(1).strip()
 
-        essence_match = re.search(
-            r"(?:Эзотерическая суть|Esoteric)[:\s]*([^\n.]+\.(?:[^\n.]+\.)?)",
-            block,
+        essence_m = re.search(
+            r"Эзотерическая суть[:\s]*([^\n]+)", block
         )
-        if essence_match:
-            result["essence"] = essence_match.group(1).strip()[:200]
+        if essence_m:
+            entry["essence"] = essence_m.group(1).strip()[:250]
 
-        if result:
-            break
+        results[awara_name] = entry
 
-    return result
+    return results
 
 
 def build_prompts():
@@ -156,35 +158,47 @@ def build_prompts():
         culture_vis = MATRIX_CULTURAL_STYLE.get(matrix_slug, "")
 
         source_file = matrix.get("source_file", "")
-        lore_key = f"{source_file}__{agent['name']}"
-        if lore_key not in lore_cache:
+        if source_file not in lore_cache:
             if source_file:
                 lore_path = os.path.join(LORE, source_file)
-                lore_cache[lore_key] = parse_lorebook(lore_path, agent["name"])
+                lore_cache[source_file] = parse_lorebook_all(lore_path)
             else:
-                lore_cache[lore_key] = {}
-        lore = lore_cache[lore_key]
+                lore_cache[source_file] = {}
+        lore_all = lore_cache[source_file]
+
+        lore = lore_all.get(agent["name"], {})
 
         domain_str = ""
         if lore.get("domain_cultural"):
-            domain_str = f" Sacred domain: {lore['domain_cultural']}."
+            dom = lore["domain_cultural"].rstrip(".")
+            domain_str = f" Sacred domain: {dom}."
 
         artifact_str = ""
         if lore.get("artifact"):
-            artifact_str = f" Key artifact: {lore['artifact']}."
+            art = lore["artifact"]
+            for prefix in ["Ключ:", "/ Ключ:"]:
+                if art.startswith(prefix):
+                    art = art[len(prefix):].strip()
+            art = art.rstrip(".")
+            if len(art) > 120:
+                art = art[:120].rsplit(",", 1)[0]
+            artifact_str = f" Holding sacred artifact: {art}."
 
         essence_str = ""
         if lore.get("essence"):
-            essence_str = f" {lore['essence']}"
+            ess = lore["essence"].rstrip(".")
+            if len(ess) > 120:
+                ess = ess[:120].rsplit(" ", 1)[0]
+            essence_str = f" Essence: {ess}."
 
         prompt = (
             f"A mystical card depicting {cultural_name}, "
-            f"manifestation of {agent['name']} in the {matrix['name']} tradition. "
-            f"Domain: {agent['domain']}.{domain_str}{artifact_str}{essence_str} "
-            f"Element: {element} — {element_vis}. "
-            f"Cultural setting: {culture_vis}. "
-            f"Visual motifs: {visual_code}. "
-            f"Mood: {guna_vis}. "
+            f"the {matrix['name']} manifestation of cosmic agent {agent['name']}. "
+            f"Realm: {agent['domain']}.{domain_str}{artifact_str}{essence_str} "
+            f"Element of power: {element} — {element_vis}. "
+            f"Cultural visual style: {culture_vis}. "
+            f"Symbolic motifs: {visual_code}. "
+            f"Atmosphere: {guna_vis}. "
             f"{STYLE_BASE}"
         )
 
