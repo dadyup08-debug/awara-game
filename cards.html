@@ -99,6 +99,12 @@ body{
 }
 .card.locked{opacity:0.4;filter:grayscale(0.6);}
 .card:hover{border-color:rgba(201,168,76,0.5);transform:translateY(-2px);}
+.card.rarity-common{border-color:rgba(160,160,160,0.35);}
+.card.rarity-uncommon{border-color:rgba(80,190,160,0.42);}
+.card.rarity-rare{border-color:rgba(255,215,0,0.52);}
+.card.rarity-epic{border-color:rgba(170,90,255,0.58);}
+.card.rarity-legendary{border-color:rgba(255,248,214,0.82);box-shadow:0 0 18px rgba(255,248,214,0.18),inset 0 0 12px rgba(255,215,0,0.08);animation:legendaryGlow 2.8s ease-in-out infinite;}
+@keyframes legendaryGlow{0%,100%{box-shadow:0 0 16px rgba(255,248,214,0.14),inset 0 0 10px rgba(255,215,0,0.06)}50%{box-shadow:0 0 26px rgba(255,248,214,0.34),inset 0 0 18px rgba(255,215,0,0.14)}}
 
 .card-el{font-size:clamp(24px,6vw,32px);margin-bottom:6px;}
 .card-name{
@@ -119,6 +125,17 @@ body{
   background:rgba(201,168,76,0.15);color:var(--gold);
   font-family:'JetBrains Mono',monospace;
 }
+.rarity-badge{
+  position:absolute;top:6px;left:6px;
+  font-size:7px;padding:2px 6px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;
+  background:rgba(0,0,0,0.45);border:1px solid currentColor;
+}
+.rarity-badge.common{color:rgba(180,180,180,0.9)}
+.rarity-badge.uncommon{color:rgba(92,220,170,0.95)}
+.rarity-badge.rare{color:rgba(255,215,0,0.95)}
+.rarity-badge.epic{color:rgba(190,120,255,0.95)}
+.rarity-badge.legendary{color:var(--gold-light);text-shadow:0 0 8px rgba(255,248,214,0.55)}
 .card-locked-ico{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   font-size:20px;opacity:0.3;
@@ -181,6 +198,7 @@ body{
     <div class="popup-matrix" id="pop-matrix"></div>
     <div class="popup-row"><span class="popup-lbl">СТИХИЯ</span><span class="popup-val" id="pop-el"></span></div>
     <div class="popup-row"><span class="popup-lbl">ВАСТУ-ЗОНА</span><span class="popup-val" id="pop-zone"></span></div>
+    <div class="popup-row"><span class="popup-lbl">РАРНОСТЬ</span><span class="popup-val" id="pop-rarity"></span></div>
     <div class="popup-row"><span class="popup-lbl">ЭФФЕКТ</span><span class="popup-val" id="pop-effect"></span></div>
     <div class="popup-row"><span class="popup-lbl">СТАТУС</span><span class="popup-val" id="pop-status"></span></div>
     <button class="popup-close" onclick="document.getElementById('card-popup').classList.remove('show')">ЗАКРЫТЬ</button>
@@ -197,8 +215,12 @@ var MATRIX_EFFECTS = {
 var EL_ICO = {
   'Огонь':'🔥','Вода':'🌊','Земля':'🌱','Воздух':'💨','Эфир':'✦'
 };
+var RARITY_LABELS = {
+  common:'ЗЕМНАЯ', uncommon:'КУЛЬТУРНАЯ', rare:'АГЕНТСКАЯ', epic:'АРТЕФАКТНАЯ', legendary:'БОЖЕСТВЕННАЯ'
+};
 
 var agents = [];
+var cardPrompts = {};
 var collected = {};
 
 function loadCollected(){
@@ -216,6 +238,10 @@ async function init(){
   try {
     agents = await fetch('data/agents.json').then(function(r){return r.json();});
   } catch(e){ console.warn('cards: agents.json error', e); return; }
+  try {
+    var prompts = await fetch('data/card_prompts.json').then(function(r){return r.json();});
+    prompts.forEach(function(p){ cardPrompts[p.card_id] = p; });
+  } catch(e){ console.warn('cards: card_prompts.json error', e); }
 
   renderFilters();
   renderCards('all');
@@ -223,13 +249,19 @@ async function init(){
 }
 
 var activeFilter = 'all';
+var activeRarity = 'all';
 
 function renderFilters(){
   var el = document.getElementById('filters');
   var btns = [{label:'ВСЕ',val:'all'}];
   MATRICES.forEach(function(m){ btns.push({label:m.toUpperCase(),val:m}); });
+  var rarityBtns = [{label:'ЛЮБАЯ РАРНОСТЬ',val:'all'}].concat(Object.keys(RARITY_LABELS).map(function(r){
+    return {label:RARITY_LABELS[r],val:r};
+  }));
   el.innerHTML = btns.map(function(b){
     return '<div class="filter-btn'+(b.val===activeFilter?' on':'')+'" onclick="setFilter(\''+b.val+'\')">'+b.label+'</div>';
+  }).join('') + rarityBtns.map(function(b){
+    return '<div class="filter-btn'+(b.val===activeRarity?' on':'')+'" onclick="setRarityFilter(\''+b.val+'\')">'+b.label+'</div>';
   }).join('');
 }
 
@@ -237,6 +269,12 @@ function setFilter(f){
   activeFilter = f;
   renderFilters();
   renderCards(f);
+}
+
+function setRarityFilter(f){
+  activeRarity = f;
+  renderFilters();
+  renderCards(activeFilter);
 }
 
 function renderCards(filter){
@@ -264,6 +302,8 @@ function showCard(slug, matrix){
   var a = agents.find(function(x){return x.slug===slug;});
   if(!a) return;
   var cid = cardId(slug, matrix);
+  var prompt = cardPrompts[cid] || {};
+  var rarity = prompt.rarity || 'common';
   var owned = !!collected[cid];
 
   document.getElementById('pop-ico').textContent = EL_ICO[a.element] || '✦';
@@ -271,6 +311,7 @@ function showCard(slug, matrix){
   document.getElementById('pop-matrix').textContent = matrix.toUpperCase();
   document.getElementById('pop-el').textContent = a.element;
   document.getElementById('pop-zone').textContent = a.vastu_zone || '—';
+  document.getElementById('pop-rarity').textContent = RARITY_LABELS[rarity] || rarity;
   document.getElementById('pop-effect').textContent = MATRIX_EFFECTS[matrix] || '—';
   document.getElementById('pop-status').textContent = owned ? '✦ В КОЛЛЕКЦИИ' : '🔒 НЕ НАЙДЕНА';
   document.getElementById('pop-status').style.color = owned ? '#c9a84c' : 'rgba(255,255,255,0.3)';
