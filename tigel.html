@@ -782,6 +782,12 @@ body::after {
         <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(201,168,76,0.5);margin-bottom:12px;text-align:center;">ИТОГИ ДНЯ</div>
         <div id="day-summary-list" style="display:flex;flex-direction:column;gap:8px;font-family:'Cormorant Garamond',serif;font-size:clamp(12px,3vw,14px);color:rgba(220,210,190,0.75);line-height:1.4;"></div>
       </div>
+
+      <!-- ВЛИЯНИЕ НАКШАТРЫ -->
+      <div id="nakshatra-panel" style="display:none;margin-top:14px;padding:14px;border-radius:10px;background:rgba(201,168,76,0.04);border:1px solid rgba(201,168,76,0.12);">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(201,168,76,0.45);margin-bottom:10px;text-align:center;">ВЛИЯНИЕ НАКШАТРЫ</div>
+        <div id="nakshatra-content" style="font-family:'Cormorant Garamond',serif;font-size:clamp(12px,3vw,14px);color:rgba(220,210,190,0.75);line-height:1.5;"></div>
+      </div>
     </div>
   </div>
   </div>
@@ -1099,6 +1105,101 @@ function renderVeilPanel(source, resonance, breached, msg) {
   html += '<div style="margin-top:6px;font-family:\'JetBrains Mono\',monospace;font-size:9px;color:rgba(201,168,76,0.4);">Множитель: x' + source.multiplier + '</div>';
   panel.style.display = 'block';
   panel.innerHTML = html;
+}
+
+// ── Накшатра дня ──
+const NAKSHATRA_NAMES = [
+  'Ашвини','Бхарани','Криттика','Рохини','Мригашира',
+  'Ардра','Пунарвасу','Пушья','Ашлеша','Магха',
+  'Пурва Пхалгуни','Уттара Пхалгуни','Хаста','Читра','Свати',
+  'Вишакха','Анурадха','Джьештха','Мула','Пурва Ашадха',
+  'Уттара Ашадха','Шравана','Дханишта','Шатабхиша',
+  'Пурва Бхадрапада','Уттара Бхадрапада','Ревати'
+];
+
+const NAKSHATRA_SLUGS = [
+  'ashvini','bharani','krittika','rohini','mrigashira',
+  'ardra','punarvasu','pushya','ashlesha','magha',
+  'purva-phalguni','uttara-phalguni','hasta','chitra','swati',
+  'vishakha','anuradha','jyeshtha','mula','purva-ashadha',
+  'uttara-ashadha','shravana','dhanishta','shatabhisha',
+  'purva-bhadrapada','uttara-bhadrapada','revati'
+];
+
+const NAKSHATRA_INFLUENCE = {
+  fire:  'Усиливает внутренний огонь и волю к действию. Практика джапы и активных медитаций особенно эффективна.',
+  water: 'Углубляет эмоциональную чувствительность и интуицию. Благоприятно для созерцания и работы со снами.',
+  earth: 'Укрепляет стабильность и связь с материальным миром. Хороший день для заземления и структурирования.',
+  air:   'Активирует ментальное пространство и коммуникацию. Благоприятно для обучения и творческих проектов.',
+  ether: 'Открывает канал к тонким энергиям и духовным практикам. День глубокой медитации и трансформации.'
+};
+
+function getDayNakshatraIndex() {
+  const now = new Date();
+  const jd = Math.floor(now.getTime() / 86400000) + 2440588;
+  return (jd + 11) % 27;
+}
+
+let nakshatraFormCache = null;
+
+async function loadNakshatraForm(nakshatraIdx) {
+  if (!nakshatraFormCache) {
+    try {
+      const resp = await fetch('data/daimon-forms.json');
+      nakshatraFormCache = await resp.json();
+    } catch(e) {
+      console.warn('daimon-forms.json не загружен:', e);
+      return null;
+    }
+  }
+  const slug = NAKSHATRA_SLUGS[nakshatraIdx];
+  return nakshatraFormCache.find(f => f.slug === slug) || nakshatraFormCache[nakshatraIdx] || null;
+}
+
+async function renderNakshatraPanel() {
+  const panel = document.getElementById('nakshatra-panel');
+  const content = document.getElementById('nakshatra-content');
+  if (!panel || !content) return;
+
+  const idx = getDayNakshatraIndex();
+  const name = NAKSHATRA_NAMES[idx];
+  const form = await loadNakshatraForm(idx);
+
+  if (!form) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  const elemRu = DAIMON_ELEM_RU[form.element] || form.element;
+  const influence = NAKSHATRA_INFLUENCE[form.element] || '';
+
+  let html = '';
+  html += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(201,168,76,0.07);">';
+  html += '<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:0.1em;color:rgba(201,168,76,0.4);">НАКШАТРА</span>';
+  html += '<span style="color:#ffd700;font-family:\'Cinzel\',serif;font-size:clamp(13px,3.2vw,15px);">' + name + '</span>';
+  html += '</div>';
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(201,168,76,0.07);">';
+  html += '<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:0.1em;color:rgba(201,168,76,0.4);">ХРАНИТЕЛЬ</span>';
+  html += '<span style="color:rgba(255,248,214,0.85);">' + form.form_name + ' · ' + form.archetype + '</span>';
+  html += '</div>';
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(201,168,76,0.07);">';
+  html += '<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:0.1em;color:rgba(201,168,76,0.4);">СТИХИЯ</span>';
+  html += '<span style="color:rgba(255,248,214,0.85);">' + elemRu + '</span>';
+  html += '</div>';
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(201,168,76,0.07);">';
+  html += '<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:0.1em;color:rgba(201,168,76,0.4);">УПРАВИТЕЛЬ</span>';
+  html += '<span style="color:rgba(255,248,214,0.85);">' + form.ruler + '</span>';
+  html += '</div>';
+
+  html += '<div style="margin-top:10px;padding:10px 12px;border-left:2px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.03);border-radius:0 8px 8px 0;font-style:italic;font-size:clamp(11px,2.8vw,13px);color:rgba(220,210,190,0.65);line-height:1.5;">';
+  html += influence;
+  html += '</div>';
+
+  content.innerHTML = html;
+  panel.style.display = 'block';
 }
 
 function applyDaimonToGeneratedKey() {
@@ -2010,6 +2111,7 @@ async function processAlchemySynthesis() {
 updateWuXingDisplay();
 initTigelDaimon();
 initTigelMilost();
+renderNakshatraPanel();
 </script>
 
 <script>
