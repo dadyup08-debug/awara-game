@@ -765,6 +765,15 @@ body::after {
         </div>
       </div>
 
+      <!-- БАЛАНС 5 ЭЛЕМЕНТОВ -->
+      <div id="elements-panel" style="display:none;margin-top:14px;padding:14px;border-radius:10px;background:rgba(201,168,76,0.04);border:1px solid rgba(201,168,76,0.12);">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(201,168,76,0.45);margin-bottom:12px;text-align:center;">БАЛАНС 5 ЭЛЕМЕНТОВ</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;">
+          <canvas id="radar-chart" width="180" height="180" style="flex-shrink:0;"></canvas>
+          <div id="elements-bars" style="flex:1;min-width:140px;display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+
       <!-- БОНУСЫ КАРТ -->
       <div id="card-effects" style="display:none;margin-top:12px;padding:12px;border-radius:10px;background:rgba(201,168,76,0.04);border:1px solid rgba(201,168,76,0.1);">
         <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:0.2em;color:rgba(201,168,76,0.45);margin-bottom:10px;text-align:center;">БОНУСЫ КАРТ</div>
@@ -1390,6 +1399,125 @@ document.querySelectorAll('.wuxing-cell').forEach(cell => {
 });
 
 // ══════════════════════════════════════════════════════════════════
+// БАЛАНС 5 ЭЛЕМЕНТОВ: РАДАР-ЧАРТ + СТОЛБИКИ
+// ══════════════════════════════════════════════════════════════════
+const ELEM_COLORS = {
+  water: 'rgba(68,136,204,0.8)',
+  wood:  'rgba(80,180,100,0.8)',
+  fire:  'rgba(255,136,68,0.8)',
+  earth: 'rgba(201,168,76,0.8)',
+  metal: 'rgba(180,180,200,0.8)'
+};
+const ELEM_ORDER = ['water','wood','fire','earth','metal'];
+
+function drawRadarChart(wuXing) {
+  var canvas = document.getElementById('radar-chart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 20;
+
+  ctx.clearRect(0, 0, W, H);
+
+  var n = ELEM_ORDER.length;
+  var angleStep = (Math.PI * 2) / n;
+  var startAngle = -Math.PI / 2;
+
+  // Сетка (3 уровня)
+  [0.33, 0.66, 1.0].forEach(function(level) {
+    ctx.beginPath();
+    for (var i = 0; i <= n; i++) {
+      var angle = startAngle + (i % n) * angleStep;
+      var x = cx + Math.cos(angle) * R * level;
+      var y = cy + Math.sin(angle) * R * level;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(201,168,76,0.12)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+
+  // Оси
+  for (var i = 0; i < n; i++) {
+    var angle = startAngle + i * angleStep;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * R, cy + Math.sin(angle) * R);
+    ctx.strokeStyle = 'rgba(201,168,76,0.1)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Данные: заливка
+  ctx.beginPath();
+  var maxVal = Math.max.apply(null, ELEM_ORDER.map(function(e) { return wuXing[e] || 0; })) || 1;
+  for (var i = 0; i <= n; i++) {
+    var elem = ELEM_ORDER[i % n];
+    var val = (wuXing[elem] || 0) / maxVal;
+    var angle = startAngle + (i % n) * angleStep;
+    var x = cx + Math.cos(angle) * R * val;
+    var y = cy + Math.sin(angle) * R * val;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(201,168,76,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Точки + подписи
+  for (var i = 0; i < n; i++) {
+    var elem = ELEM_ORDER[i];
+    var val = (wuXing[elem] || 0) / maxVal;
+    var angle = startAngle + i * angleStep;
+    var px = cx + Math.cos(angle) * R * val;
+    var py = cy + Math.sin(angle) * R * val;
+
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fillStyle = ELEM_COLORS[elem];
+    ctx.fill();
+
+    var lx = cx + Math.cos(angle) * (R + 14);
+    var ly = cy + Math.sin(angle) * (R + 14);
+    ctx.font = '9px "JetBrains Mono", monospace';
+    ctx.fillStyle = ELEM_COLORS[elem];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ELEM_RU[elem], lx, ly);
+  }
+}
+
+function renderElementBars(wuXing) {
+  var barsEl = document.getElementById('elements-bars');
+  if (!barsEl) return;
+  var sorted = ELEM_ORDER.slice().sort(function(a, b) { return (wuXing[b] || 0) - (wuXing[a] || 0); });
+  barsEl.innerHTML = sorted.map(function(elem) {
+    var pct = Math.round((wuXing[elem] || 0) * 100);
+    var color = ELEM_COLORS[elem];
+    return '<div style="display:flex;align-items:center;gap:6px;">' +
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:8px;width:50px;color:' + color + ';">' + ELEM_RU[elem] + '</div>' +
+      '<div style="flex:1;height:8px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden;">' +
+        '<div style="height:100%;width:' + pct + '%;border-radius:4px;transition:width 0.4s;background:' + color + ';"></div>' +
+      '</div>' +
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;width:30px;text-align:right;color:rgba(255,248,214,0.6);">' + pct + '%</div>' +
+    '</div>';
+  }).join('');
+}
+
+function updateElementsPanel(wuXing) {
+  var panel = document.getElementById('elements-panel');
+  if (!panel) return;
+  var hasData = Object.values(wuXing).some(function(v) { return v > 0; });
+  if (!hasData) return;
+  drawRadarChart(wuXing);
+  renderElementBars(wuXing);
+  panel.style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════════════
 // РАСЧЁТ ТОРОИДА
 // ══════════════════════════════════════════════════════════════════
 function calculateToroid() {
@@ -1428,6 +1556,9 @@ function calculateToroid() {
 
   // Свет
   document.getElementById('light-total').textContent = formatLightValue(milostLight.finalLight)+' ✦';
+
+  // Баланс 5 элементов
+  updateElementsPanel(wuXingState);
 
   // Рекомендации
   const recs = getToroidRecommendations(toroidResult);
