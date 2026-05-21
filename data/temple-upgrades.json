@@ -1,0 +1,52 @@
+[
+  {
+    "level": 1,
+    "name_ru": "Основание",
+    "name_en": "Foundation",
+    "description": "Первый камень заложен. Храм излучает слабое сияние.",
+    "cost_light": 0,
+    "passive_multiplier": 1.0,
+    "meditation_bonus": 10,
+    "unlock_feature": null
+  },
+  {
+    "level": 2,
+    "name_ru": "Алтарь",
+    "name_en": "Altar",
+    "description": "Алтарь воздвигнут. Можно проводить базовые ритуалы.",
+    "cost_light": 1000,
+    "passive_multiplier": 1.5,
+    "meditation_bonus": 20,
+    "unlock_feature": "basic_rituals"
+  },
+  {
+    "level": 3,
+    "name_ru": "Святилище",
+    "name_en": "Sanctuary",
+    "description": "Святилище открыто. Доступна глубокая медитация.",
+    "cost_light": 3000,
+    "passive_multiplier": 2.0,
+    "meditation_bonus": 35,
+    "unlock_feature": "deep_meditation"
+  },
+  {
+    "level": 4,
+    "name_ru": "Храм",
+    "name_en": "Temple",
+    "description": "Полноценный храм. Привлекает паломников.",
+    "cost_light": 7000,
+    "passive_multiplier": 2.5,
+    "meditation_bonus": 50,
+    "unlock_feature": "pilgrims"
+  },
+  {
+    "level": 5,
+    "name_ru": "Космический Маяк",
+    "name_en": "Cosmic Beacon",
+    "description": "Маяк света виден из других лок. Связь с Макрокосмом.",
+    "cost_light": 15000,
+    "passive_multiplier": 3.5,
+    "meditation_bonus": 100,
+    "unlock_feature": "macrocosm_link"
+  }
+]
