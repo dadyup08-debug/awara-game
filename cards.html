@@ -185,6 +185,40 @@
       background: rgba(201,168,76,0.05);
     }
 
+    /* Рарность — рамки */
+    .card.rarity-common { border-color: rgba(160,160,160,0.35); }
+    .card.rarity-uncommon { border-color: rgba(80,190,160,0.42); }
+    .card.rarity-rare { border-color: rgba(255,215,0,0.52); }
+    .card.rarity-epic { border-color: rgba(170,90,255,0.58); }
+    .card.rarity-legendary {
+      border-color: rgba(255,248,214,0.82);
+      box-shadow: 0 0 18px rgba(255,248,214,0.18), inset 0 0 12px rgba(255,215,0,0.08);
+      animation: legendaryGlow 2.8s ease-in-out infinite;
+    }
+    @keyframes legendaryGlow {
+      0%, 100% { box-shadow: 0 0 16px rgba(255,248,214,0.14), inset 0 0 10px rgba(255,215,0,0.06); }
+      50% { box-shadow: 0 0 26px rgba(255,248,214,0.34), inset 0 0 18px rgba(255,215,0,0.14); }
+    }
+
+    /* Бейдж рарности */
+    .rarity-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 7px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.08em;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid currentColor;
+    }
+    .rarity-badge.common { color: rgba(180,180,180,0.9); }
+    .rarity-badge.uncommon { color: rgba(92,220,170,0.95); }
+    .rarity-badge.rare { color: rgba(255,215,0,0.95); }
+    .rarity-badge.epic { color: rgba(190,120,255,0.95); }
+    .rarity-badge.legendary { color: rgba(255,248,214,1); text-shadow: 0 0 8px rgba(255,248,214,0.55); }
+
     .card-symbol {
       font-size: clamp(24px, 6vw, 36px);
       margin-bottom: 8px;
@@ -269,6 +303,13 @@
       color: rgba(255,248,214,0.25);
       letter-spacing: 0.1em;
     }
+
+    /* Разделитель фильтров */
+    .filter-divider {
+      width: 100%;
+      height: 0;
+      margin: 4px 0;
+    }
   </style>
 </head>
 <body>
@@ -303,11 +344,18 @@
   import { showModal } from './js/ui-module.js';
   import { loadState, updateState } from './js/state-module.js';
 
+  const RARITY_LABELS = {
+    common: 'ЗЕМНАЯ', uncommon: 'КУЛЬТУРНАЯ', rare: 'АГЕНТСКАЯ',
+    epic: 'АРТЕФАКТНАЯ', legendary: 'БОЖЕСТВЕННАЯ'
+  };
+
   let allCards = [];
   let agents = [];
   let matrixSubset = [];
   let agentMatrixMap = [];
+  let cardPromptsMap = {};
   let activeFilter = 'all';
+  let activeRarity = 'all';
 
   // --- Загрузка данных ---
   async function init() {
@@ -315,6 +363,13 @@
       agents = await loadAgents() || [];
       const matrices = await loadMatrices() || [];
       agentMatrixMap = await loadAgentMatrixMap() || [];
+
+      // Загружаем рарность из card_prompts.json
+      try {
+        const prompts = await fetch('data/card_prompts.json').then(r => r.json());
+        prompts.forEach(p => { cardPromptsMap[p.card_id] = p; });
+        console.log('[Cards] Загружено промптов с рарностью:', prompts.length);
+      } catch (e) { console.warn('[Cards] card_prompts.json не загружен:', e); }
 
       console.log('[Canon] Загружено агентов:', agents.length);
       console.log('[Canon] Загружено матриц:', matrices.length);
@@ -332,12 +387,18 @@
             e => e.agent_id === agent.id && e.matrix_id === matrix.id
           );
 
+          const promptKey = agent.slug + '__' + matrix.slug;
+          const promptData = cardPromptsMap[promptKey];
+          const rarity = promptData ? promptData.rarity : 'common';
+
           allCards.push({
             id: agent.id + '_' + matrix.id,
             agent: agent,
             matrix: matrix,
             cardType: 'core_agent_matrix',
-            culturalName: mapEntry ? mapEntry.cultural_name : null
+            culturalName: mapEntry ? mapEntry.cultural_name : null,
+            rarity: rarity,
+            promptKey: promptKey
           });
         }
       }
@@ -365,12 +426,41 @@
   // --- Фильтр кнопки ---
   function buildFilterButtons() {
     const section = document.getElementById('filter-section');
-    // Кнопка "Все" уже есть в HTML, добавляем матрицы
+    section.innerHTML = '';
+
+    // Кнопка "Все матрицы"
+    const allBtn = document.createElement('button');
+    allBtn.className = 'filter-btn' + (activeFilter === 'all' ? ' active' : '');
+    allBtn.dataset.filter = 'all';
+    allBtn.textContent = 'Все';
+    section.appendChild(allBtn);
+
+    // Кнопки матриц
     for (const m of matrixSubset) {
       const btn = document.createElement('button');
-      btn.className = 'filter-btn';
+      btn.className = 'filter-btn' + (activeFilter === String(m.id) ? ' active' : '');
       btn.dataset.filter = String(m.id);
       btn.textContent = m.name;
+      section.appendChild(btn);
+    }
+
+    // Разделитель
+    const divider = document.createElement('div');
+    divider.className = 'filter-divider';
+    section.appendChild(divider);
+
+    // Кнопки рарности
+    const rarAll = document.createElement('button');
+    rarAll.className = 'filter-btn' + (activeRarity === 'all' ? ' active' : '');
+    rarAll.dataset.rarity = 'all';
+    rarAll.textContent = 'Любая рарность';
+    section.appendChild(rarAll);
+
+    for (const [key, label] of Object.entries(RARITY_LABELS)) {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (activeRarity === key ? ' active' : '');
+      btn.dataset.rarity = key;
+      btn.textContent = label;
       section.appendChild(btn);
     }
   }
@@ -379,9 +469,13 @@
   document.getElementById('filter-section').addEventListener('click', (e) => {
     const btn = e.target.closest('.filter-btn');
     if (!btn) return;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeFilter = btn.dataset.filter;
+
+    if (btn.dataset.rarity !== undefined) {
+      activeRarity = btn.dataset.rarity;
+    } else if (btn.dataset.filter !== undefined) {
+      activeFilter = btn.dataset.filter;
+    }
+    buildFilterButtons();
     renderCards();
   });
 
@@ -392,7 +486,10 @@
 
     if (activeFilter !== 'all') {
       const matrixId = parseInt(activeFilter, 10);
-      filtered = allCards.filter(c => c.matrix.id === matrixId);
+      filtered = filtered.filter(c => c.matrix.id === matrixId);
+    }
+    if (activeRarity !== 'all') {
+      filtered = filtered.filter(c => c.rarity === activeRarity);
     }
 
     if (filtered.length === 0) {
@@ -405,8 +502,11 @@
       const agentName = escapeHtml(card.agent.name);
       const matrixName = escapeHtml(card.matrix.name);
       const cultural = card.culturalName ? escapeHtml(card.culturalName) : '';
+      const rarity = card.rarity || 'common';
+      const rarityLabel = RARITY_LABELS[rarity] || rarity;
 
-      return '<div class="card" data-card-id="' + card.id + '">' +
+      return '<div class="card rarity-' + rarity + '" data-card-id="' + card.id + '">' +
+        '<div class="rarity-badge ' + rarity + '">' + rarityLabel + '</div>' +
         '<div class="card-symbol">' + symbol + '</div>' +
         '<div class="card-agent">' + agentName + '</div>' +
         '<div class="card-matrix">' + matrixName + '</div>' +
@@ -433,12 +533,16 @@
     const symbol = getAgentSymbol(card.agent);
     const cultural = card.culturalName || '---';
 
+    const rarity = card.rarity || 'common';
+    const rarityLabel = RARITY_LABELS[rarity] || rarity;
+
     const content = '<div class="modal-card-content">' +
       '<div class="modal-symbol">' + symbol + '</div>' +
       '<div class="modal-agent-name">' + escapeHtml(card.agent.name) + '</div>' +
       '<div class="modal-cultural-name">' + escapeHtml(cultural) + '</div>' +
       '<div class="modal-meta">' +
         '<div>матрица: <span>' + escapeHtml(card.matrix.name) + '</span></div>' +
+        '<div>рарность: <span>' + rarityLabel + '</span></div>' +
         '<div>стихия: <span>' + escapeHtml(card.agent.element || '---') + '</span></div>' +
         '<div>гуна: <span>' + escapeHtml(card.agent.guna || '---') + '</span></div>' +
         '<div>домен: <span>' + escapeHtml(card.agent.domain || '---') + '</span></div>' +
