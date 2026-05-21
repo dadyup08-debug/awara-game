@@ -131,6 +131,79 @@ body::before{
 .streak-label{
   font-size:7px;color:var(--text-mute);text-align:center;margin-top:2px;
 }
+
+.ray-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(13px,3vw,15px);
+}
+.ray-number{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(201,168,76,0.25),rgba(255,215,0,0.10));
+  border:1px solid rgba(201,168,76,0.35);
+  font-family:Cinzel,serif;font-size:10px;font-weight:700;
+  color:var(--gold-bright);
+}
+.guna-badge{
+  display:inline-block;padding:3px 10px;border-radius:99px;
+  font-size:10px;letter-spacing:0.1em;
+  border:1px solid;
+}
+.guna-sattva{color:#ffd700;border-color:rgba(255,215,0,0.35);background:rgba(255,215,0,0.08)}
+.guna-rajas{color:#ff6b4a;border-color:rgba(255,107,74,0.35);background:rgba(255,107,74,0.08)}
+.guna-tamas{color:#8b9dc3;border-color:rgba(139,157,195,0.35);background:rgba(139,157,195,0.08)}
+
+.keys-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));
+  gap:8px;margin-top:8px;
+}
+.key-cell{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 6px;border-radius:8px;
+  background:rgba(201,168,76,0.04);border:1px solid rgba(201,168,76,0.08);
+}
+.key-cell.has-keys{border-color:rgba(201,168,76,0.22);background:rgba(201,168,76,0.08)}
+.key-icon{font-size:16px;line-height:1}
+.key-name{font-size:7px;letter-spacing:0.1em;color:var(--text-mute);text-transform:uppercase}
+.key-count{
+  font-family:Cinzel,serif;font-size:clamp(14px,3.5vw,18px);
+  color:var(--gold-light);
+}
+
+.cards-summary{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.cards-total{
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(20px,5vw,28px);color:var(--gold-bright);
+}
+.cards-of{font-size:10px;color:var(--text-mute);margin-left:4px}
+.rarity-row{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 0;border-bottom:1px solid rgba(201,168,76,0.06);
+}
+.rarity-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.rarity-dot.common{background:rgba(160,160,160,0.6)}
+.rarity-dot.uncommon{background:rgba(80,190,160,0.7)}
+.rarity-dot.rare{background:rgba(255,215,0,0.8)}
+.rarity-dot.epic{background:rgba(170,90,255,0.8)}
+.rarity-dot.legendary{background:rgba(255,248,214,0.9);box-shadow:0 0 6px rgba(255,248,214,0.5)}
+.rarity-name{font-size:9px;letter-spacing:0.08em;color:var(--text-soft);flex:1}
+.rarity-count{font-family:Cinzel,serif;font-size:12px;color:var(--gold-light)}
+
+.journey-log{margin-top:8px}
+.journey-entry{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;border-bottom:1px solid rgba(201,168,76,0.06);
+}
+.journey-date{font-size:8px;color:var(--text-mute);min-width:50px}
+.journey-text{font-size:10px;color:var(--text-soft);flex:1}
+.journey-light{font-size:10px;color:var(--gold)}
+
 .daimon-card{
   display:flex;align-items:center;gap:14px;
   color:inherit;text-decoration:none;border-color:rgba(255,215,0,0.28);
@@ -235,6 +308,14 @@ body::before{
       <span class="pp-label">МАТРИЦА</span>
       <span class="pp-value" id="pp-matrix">—</span>
     </div>
+    <div class="pp-row">
+      <span class="pp-label">ЛУЧ</span>
+      <span class="pp-value" id="pp-ray"><span class="ray-badge">—</span></span>
+    </div>
+    <div class="pp-row">
+      <span class="pp-label">ГУНА</span>
+      <span class="pp-value" id="pp-guna">—</span>
+    </div>
   </div>
 
   <!-- ДАЙМОН -->
@@ -280,6 +361,32 @@ body::before{
     <div class="streak-row" id="pp-streak-dots"></div>
   </div>
 
+  <!-- КЛЮЧИ -->
+  <div class="passport-card">
+    <div class="pp-section-title">КЛЮЧИ</div>
+    <div class="pp-row">
+      <span class="pp-label">ВСЕГО СОБРАНО</span>
+      <span class="pp-value pp-value-gold" id="pp-keys-total">0</span>
+    </div>
+    <div class="keys-grid" id="pp-keys-grid"></div>
+  </div>
+
+  <!-- КОЛЛЕКЦИЯ КАРТ -->
+  <div class="passport-card">
+    <div class="pp-section-title">КОЛЛЕКЦИЯ КАРТ</div>
+    <div class="cards-summary">
+      <div><span class="cards-total" id="pp-cards-total">0</span><span class="cards-of"> / 693</span></div>
+      <div style="font-size:8px;color:var(--text-mute);letter-spacing:0.1em;">СОБРАНО</div>
+    </div>
+    <div id="pp-rarity-breakdown"></div>
+  </div>
+
+  <!-- ПУТЬ (последние события) -->
+  <div class="passport-card">
+    <div class="pp-section-title">ПУТЬ ДУШИ</div>
+    <div class="journey-log" id="pp-journey"></div>
+  </div>
+
   <div class="passport-card milost-card">
     <div class="milost-head">
       <div class="milost-title">Милость Дня</div>
@@ -301,8 +408,39 @@ body::before{
 <script type="module">
 import { getState } from './js/playerState.js';
 import { getStreak } from './js/streak.js';
-import { getMilostToday, refreshMilost } from './js/milost-module.js';
+// milost functions are defined inline below (not exported from milost-module)
 import { getDaimon } from './js/daimon-module.js';
+const RAY_NAMES = {
+  1: 'Воля и Могущество',
+  2: 'Любовь и Мудрость',
+  3: 'Активный Интеллект',
+  4: 'Гармония через Конфликт',
+  5: 'Конкретное Знание',
+  6: 'Преданность и Идеализм',
+  7: 'Церемониальный Порядок'
+};
+
+const GUNA_MAP = {
+  'саттва': { label: 'Саттва', css: 'guna-sattva' },
+  'раджас': { label: 'Раджас', css: 'guna-rajas' },
+  'тамас':  { label: 'Тамас',  css: 'guna-tamas' }
+};
+
+const KEY_TYPE_META = [
+  { type: 'small',     icon: '🔑', name: 'Малый' },
+  { type: 'conscious', icon: '🗝', name: 'Осознанный' },
+  { type: 'deep',      icon: '⚷', name: 'Глубокий' },
+  { type: 'mystic',    icon: '✦', name: 'Мистический' },
+  { type: 'divine',    icon: '☀', name: 'Божественный' }
+];
+
+const RARITY_META = [
+  { id: 'legendary',  name: 'БОЖЕСТВЕННАЯ', dot: 'legendary' },
+  { id: 'epic',       name: 'АРТЕФАКТНАЯ',  dot: 'epic' },
+  { id: 'rare',       name: 'АГЕНТСКАЯ',    dot: 'rare' },
+  { id: 'uncommon',   name: 'КУЛЬТУРНАЯ',   dot: 'uncommon' },
+  { id: 'common',     name: 'ЗЕМНАЯ',       dot: 'common' }
+];
 
 const MILOST_SOURCE_META = [
   ['jupiter', '♃', 'Юпитер'],
@@ -400,9 +538,13 @@ function renderMilostPanel(milost) {
 
 async function initMilostPanel() {
   try {
-    let milost = getMilostToday();
-    if (!milost || milost.date !== todayKey()) milost = await refreshMilost();
-    renderMilostPanel(milost);
+    let milost = null;
+    try { milost = JSON.parse(localStorage.getItem('awara_milost_today') || 'null'); } catch (e) {}
+    if (milost && milost.date === todayKey()) {
+      renderMilostPanel(milost);
+    } else {
+      document.getElementById('milost-note').textContent = 'милость пока не рассчитана';
+    }
   } catch (e) {
     console.warn('milost:', e);
     document.getElementById('milost-note').textContent = 'милость пока не рассчитана';
@@ -417,12 +559,24 @@ async function init() {
   const pid = localStorage.getItem('awara_player_id') || '—';
   document.getElementById('pp-id').textContent = pid.length > 12 ? pid.slice(0, 8) + '…' : pid;
 
-  // Agent
+  // Agent + Ray + Guna
   const agentSlug = localStorage.getItem('awara_active_agent') || 'svet_ra';
+  let agents = [];
   try {
-    const agents = await fetch('data/agents.json').then(r => r.json());
+    agents = await fetch('data/agents.json').then(r => r.json());
     const agent = agents.find(a => a.slug === agentSlug || a.id === agentSlug);
     document.getElementById('pp-agent').textContent = agent ? agent.name : agentSlug;
+
+    if (agent && agent.ray) {
+      const rayName = RAY_NAMES[agent.ray] || 'Луч ' + agent.ray;
+      document.getElementById('pp-ray').innerHTML =
+        '<span class="ray-badge"><span class="ray-number">' + agent.ray + '</span> ' + escapeHtml(rayName) + '</span>';
+    }
+    if (agent && agent.guna) {
+      const guna = GUNA_MAP[agent.guna] || { label: agent.guna, css: '' };
+      document.getElementById('pp-guna').innerHTML =
+        '<span class="guna-badge ' + guna.css + '">' + escapeHtml(guna.label) + '</span>';
+    }
   } catch { document.getElementById('pp-agent').textContent = agentSlug; }
 
   // Matrix
@@ -465,7 +619,95 @@ async function init() {
       '<div class="streak-label">' + label + '</div></div>';
   }).join('');
 
+  // Keys
+  renderKeys();
+
+  // Cards collection
+  await renderCardsCollection();
+
+  // Journey
+  renderJourney(state);
+
   await initMilostPanel();
+}
+
+function renderKeys() {
+  let inventory = [];
+  try { inventory = JSON.parse(localStorage.getItem('awara_key_inventory') || '[]'); } catch (e) { console.warn('keys:', e); }
+
+  document.getElementById('pp-keys-total').textContent = inventory.length;
+
+  const counts = {};
+  KEY_TYPE_META.forEach(k => { counts[k.type] = 0; });
+  inventory.forEach(key => {
+    const t = (key.type || key.keyType || 'small').toLowerCase();
+    if (counts[t] !== undefined) counts[t]++;
+    else counts['small']++;
+  });
+
+  const grid = document.getElementById('pp-keys-grid');
+  grid.innerHTML = KEY_TYPE_META.map(k => {
+    const c = counts[k.type] || 0;
+    return '<div class="key-cell' + (c > 0 ? ' has-keys' : '') + '">' +
+      '<div class="key-icon">' + k.icon + '</div>' +
+      '<div class="key-count">' + c + '</div>' +
+      '<div class="key-name">' + k.name + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function renderCardsCollection() {
+  let collected = {};
+  try { collected = JSON.parse(localStorage.getItem('awara_cards') || '{}'); } catch (e) {}
+
+  const totalCollected = Object.keys(collected).length;
+  document.getElementById('pp-cards-total').textContent = totalCollected;
+
+  let prompts = [];
+  try { prompts = await fetch('data/card_prompts.json').then(r => r.json()); } catch (e) {}
+
+  const promptMap = {};
+  prompts.forEach(p => { promptMap[p.card_id] = p; });
+
+  const rarityCounts = {};
+  RARITY_META.forEach(r => { rarityCounts[r.id] = 0; });
+  Object.keys(collected).forEach(cid => {
+    const prompt = promptMap[cid];
+    const rarity = prompt ? prompt.rarity : 'common';
+    if (rarityCounts[rarity] !== undefined) rarityCounts[rarity]++;
+    else rarityCounts['common']++;
+  });
+
+  const breakdown = document.getElementById('pp-rarity-breakdown');
+  breakdown.innerHTML = RARITY_META.map(r => {
+    const c = rarityCounts[r.id] || 0;
+    return '<div class="rarity-row">' +
+      '<div class="rarity-dot ' + r.dot + '"></div>' +
+      '<div class="rarity-name">' + r.name + '</div>' +
+      '<div class="rarity-count">' + c + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderJourney(state) {
+  const journey = (state.journey || []).slice(0, 10);
+  const el = document.getElementById('pp-journey');
+
+  if (journey.length === 0) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--text-mute);text-align:center;padding:12px 0;">Путь ещё не начат. Пройди Тигель, чтобы увидеть записи.</div>';
+    return;
+  }
+
+  el.innerHTML = journey.map(j => {
+    const date = j.date || j.ts ? new Date(j.date || j.ts).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—';
+    const text = j.agent || j.id || 'запись';
+    const light = j.lightDelta != null ? (j.lightDelta >= 0 ? '+' : '') + Number(j.lightDelta).toFixed(1) + ' ✦' : '';
+    return '<div class="journey-entry">' +
+      '<div class="journey-date">' + date + '</div>' +
+      '<div class="journey-text">' + escapeHtml(text) + '</div>' +
+      (light ? '<div class="journey-light">' + light + '</div>' : '') +
+    '</div>';
+  }).join('');
 }
 
 init();
