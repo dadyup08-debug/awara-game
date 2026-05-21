@@ -34,6 +34,20 @@
 
 ## Лог смен (новые записи СВЕРХУ)
 
+### [2026-05-21 21:29] E-012: Temple upgrades
+
+**Что сделано:**
+- Создан data/temple-upgrades.json
+- 5 уровней улучшений храма
+- Поля: cost, passive_multiplier, meditation_bonus, unlock_feature
+
+**Файлы:**
+- data/temple-upgrades.json (+52 lines)
+
+**Статус:** 🔍 Review
+
+**Следующая задача:** E-013 (js/temple-module.js v2.0)
+
 ### 2026-05-20 · victorianpieraverdi-dev · E-018
 - Закрыто: E-018 (T-033) -- накшатра-агенты в Тигель.
 - В tigel.html после блока ИТОГИ ДНЯ добавлен блок ВЛИЯНИЕ НАКШАТРЫ.
