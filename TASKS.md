@@ -400,7 +400,7 @@
   Файлы: `index.html`
   Est: 15 мин
 
-- [ ] **E-020 · 7-day streak upgrade**
+- [x] **E-020 · 7-day streak upgrade**
   DoD: в index.html streak визуализация -- календарь-сетка 7 дней, пропущенные дни, бонус за серию.
   Файлы: `index.html`
   Est: 15 мин
