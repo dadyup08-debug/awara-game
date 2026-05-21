@@ -30,7 +30,13 @@ const DEFAULT_STATE = {
     lastResult: null
   },
   activeSystem: 'Ведическая',
-  journey: []
+  journey: [],
+  soulPassport: {
+    ray: null,
+    guna: null,
+    path: null,
+    archetypeSummary: null
+  }
 };
 
 /**
@@ -53,7 +59,8 @@ export function migrate() {
       elements:     legacy.elements     ?? { ...DEFAULT_STATE.elements },
       cauldron:     legacy.cauldron     ?? { ...DEFAULT_STATE.cauldron },
       activeSystem: legacy.activeSystem ?? DEFAULT_STATE.activeSystem,
-      journey:      legacy.journey      ?? []
+      journey:      legacy.journey      ?? [],
+      soulPassport: legacy.soulPassport ?? { ...DEFAULT_STATE.soulPassport }
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
     return migrated;
@@ -79,7 +86,8 @@ export function getState() {
         elements:     data.elements     ?? { ...DEFAULT_STATE.elements },
         cauldron:     data.cauldron     ?? { ...DEFAULT_STATE.cauldron },
         activeSystem: data.activeSystem ?? DEFAULT_STATE.activeSystem,
-        journey:      data.journey      ?? []
+        journey:      data.journey      ?? [],
+        soulPassport: data.soulPassport ?? { ...DEFAULT_STATE.soulPassport }
       };
     } catch (e) {
       console.warn('playerState: ошибка чтения ' + STORAGE_KEY, e);
@@ -89,13 +97,13 @@ export function getState() {
   const migrated = migrate();
   if (migrated) return migrated;
 
-  return { ...DEFAULT_STATE, spirit: { ...DEFAULT_STATE.spirit }, elements: { ...DEFAULT_STATE.elements }, cauldron: { ...DEFAULT_STATE.cauldron }, journey: [] };
+  return { ...DEFAULT_STATE, spirit: { ...DEFAULT_STATE.spirit }, elements: { ...DEFAULT_STATE.elements }, cauldron: { ...DEFAULT_STATE.cauldron }, journey: [], soulPassport: { ...DEFAULT_STATE.soulPassport } };
 }
 
 /**
  * Сохранение состояния в localStorage.
  * Принимает объект с полями totalLight, sphereData, spirit, elements,
- * activeSystem, journey.
+ * activeSystem, journey, soulPassport.
  */
 export function saveState(state) {
   const data = {
@@ -105,7 +113,8 @@ export function saveState(state) {
     elements:     state.elements     ?? {},
     cauldron:     state.cauldron     ?? { ...DEFAULT_STATE.cauldron },
     activeSystem: state.activeSystem ?? 'Ведическая',
-    journey:      state.journey      ?? []
+    journey:      state.journey      ?? [],
+    soulPassport: state.soulPassport ?? { ...DEFAULT_STATE.soulPassport }
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
